@@ -9,30 +9,44 @@ A web app for the MJM Mill FFB (Fresh Fruit Bunch) Reception Station, covering:
 
 ## Stack
 
-- **Backend**: Node.js + Express, using the built-in `node:sqlite` module (no native build step required). Data is stored in `server/data/mjm-mill.db`.
+- **Backend**: Node.js + Express + Postgres (via the `pg` package). Designed to run against a Supabase Postgres database.
 - **Frontend**: React + Vite, mobile-responsive (bottom tab bar on mobile, top nav on desktop).
 
 ## Running locally
 
-Requires Node.js 22.5+ (for `node:sqlite`).
+1. Create a Postgres database (e.g. a free [Supabase](https://supabase.com) project) and copy its connection string.
+2. Create `server/.env` with:
+   ```
+   DATABASE_URL=postgresql://...your-supabase-connection-string...
+   ```
+3. Start both servers:
+   ```bash
+   # Terminal 1 — API server (port 4000)
+   cd server
+   npm install
+   npm run dev
 
-```bash
-# Terminal 1 — API server (port 4000)
-cd server
-npm install
-npm run dev
+   # Terminal 2 — frontend (port 5173)
+   cd client
+   npm install
+   npm run dev
+   ```
 
-# Terminal 2 — frontend (port 5173)
-cd client
-npm install
-npm run dev
-```
+Open http://localhost:5173. The Vite dev server proxies `/api` requests to the Express server on port 4000. Tables are created automatically on first server start.
 
-Open http://localhost:5173. The Vite dev server proxies `/api` requests to the Express server on port 4000.
+## Deploying (Render)
+
+`render.yaml` at the project root defines two services:
+
+- `mjm-mill-ffb-api` — the Express backend (needs a `DATABASE_URL` env var set in the Render dashboard, pointing at your Supabase Postgres instance)
+- `mjm-mill-ffb-web` — the static React build, configured with `VITE_API_BASE` pointing at the deployed API URL
+
+Connect this repo on [render.com](https://render.com) and it will pick up `render.yaml` as a Blueprint.
 
 ## Project structure
 
 ```
-server/   Express API + node:sqlite database
-client/   React + Vite frontend
+server/       Express API + Postgres (pg)
+client/       React + Vite frontend
+render.yaml   Render deployment config
 ```

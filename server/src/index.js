@@ -1,6 +1,7 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { db } from './db.js';
+import { pool } from './db.js';
 import { router as employeesRouter } from './routes/employees.js';
 import { router as payrollRouter } from './routes/payroll.js';
 import { router as receptionRouter } from './routes/reception.js';
@@ -15,23 +16,24 @@ app.use('/api/employees', employeesRouter);
 app.use('/api/payroll', payrollRouter);
 app.use('/api/reception', receptionRouter);
 
-app.get('/api/dashboard/summary', (req, res) => {
-  const employeeCount = db.prepare("SELECT COUNT(*) AS c FROM employees WHERE status = 'active'").get().c;
-  const pendingPayroll = db.prepare("SELECT COUNT(*) AS c FROM payroll_records WHERE status = 'pending'").get().c;
-  const today = new Date().toISOString().slice(0, 10);
-  const todayDeliveries = db.prepare('SELECT COUNT(*) AS c FROM ffb_receptions WHERE delivery_date = ?').get(today).c;
-  const todayTonnage = db.prepare('SELECT COALESCE(SUM(net_weight_kg), 0) AS s FROM ffb_receptions WHERE delivery_date = ?').get(today).s;
-  const monthPayout = db.prepare(`
-    SELECT COALESCE(SUM(net_pay), 0) AS s FROM payroll_records
-    WHERE strftime('%Y-%m', period_start) = strftime('%Y-%m', 'now')
-  `).get().s;
+app.get('/api/dashboard/summary', async (req, res) => {
+  const [employeeCount, pendingPayroll, todayDeliveries, todayTonnage, monthPayout] = await Promise.all([
+    pool.query("SELECT COUNT(*) AS c FROM employees WHERE status = 'active'"),
+    pool.query("SELECT COUNT(*) AS c FROM payroll_records WHERE status = 'pending'"),
+    pool.query('SELECT COUNT(*) AS c FROM ffb_receptions WHERE delivery_date = CURRENT_DATE'),
+    pool.query('SELECT COALESCE(SUM(net_weight_kg), 0) AS s FROM ffb_receptions WHERE delivery_date = CURRENT_DATE'),
+    pool.query(`
+      SELECT COALESCE(SUM(net_pay), 0) AS s FROM payroll_records
+      WHERE to_char(period_start, 'YYYY-MM') = to_char(CURRENT_DATE, 'YYYY-MM')
+    `)
+  ]);
 
   res.json({
-    activeEmployees: employeeCount,
-    pendingPayrollRecords: pendingPayroll,
-    todayDeliveries,
-    todayNetWeightKg: todayTonnage,
-    thisMonthNetPay: monthPayout
+    activeEmployees: Number(employeeCount.rows[0].c),
+    pendingPayrollRecords: Number(pendingPayroll.rows[0].c),
+    todayDeliveries: Number(todayDeliveries.rows[0].c),
+    todayNetWeightKg: Number(todayTonnage.rows[0].s),
+    thisMonthNetPay: Number(monthPayout.rows[0].s)
   });
 });
 
