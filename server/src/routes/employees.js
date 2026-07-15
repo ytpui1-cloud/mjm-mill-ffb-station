@@ -25,7 +25,7 @@ router.post('/', async (req, res) => {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
       [employee_no, name, position ?? null, department ?? null, phone ?? null, ic_no ?? null,
-       join_date ?? null, salary_type ?? 'monthly', base_rate ?? 0, status ?? 'active']
+       join_date || null, salary_type ?? 'monthly', base_rate ?? 0, status ?? 'active']
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -43,7 +43,7 @@ router.put('/:id', async (req, res) => {
        join_date = $7, salary_type = $8, base_rate = $9, status = $10 WHERE id = $11
      RETURNING *`,
     [merged.employee_no, merged.name, merged.position, merged.department, merged.phone, merged.ic_no,
-     merged.join_date, merged.salary_type, merged.base_rate, merged.status, req.params.id]
+     merged.join_date || null, merged.salary_type, merged.base_rate, merged.status, req.params.id]
   );
   res.json(rows[0]);
 });
