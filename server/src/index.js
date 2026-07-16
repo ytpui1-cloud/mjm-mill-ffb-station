@@ -2,6 +2,9 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { pool } from './db.js';
+import { authenticate } from './middleware/auth.js';
+import { router as authRouter } from './routes/auth.js';
+import { router as usersRouter } from './routes/users.js';
 import { router as employeesRouter } from './routes/employees.js';
 import { router as payrollRouter } from './routes/payroll.js';
 import { router as receptionRouter } from './routes/reception.js';
@@ -12,11 +15,14 @@ const PORT = process.env.PORT || 4000;
 app.use(cors());
 app.use(express.json());
 
-app.use('/api/employees', employeesRouter);
-app.use('/api/payroll', payrollRouter);
-app.use('/api/reception', receptionRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/users', usersRouter);
 
-app.get('/api/dashboard/summary', async (req, res) => {
+app.use('/api/employees', authenticate, employeesRouter);
+app.use('/api/payroll', authenticate, payrollRouter);
+app.use('/api/reception', authenticate, receptionRouter);
+
+app.get('/api/dashboard/summary', authenticate, async (req, res) => {
   const [employeeCount, pendingPayroll, todayDeliveries, todayTonnage, monthPayout] = await Promise.all([
     pool.query("SELECT COUNT(*) AS c FROM employees WHERE status = 'active'"),
     pool.query("SELECT COUNT(*) AS c FROM payroll_records WHERE status = 'pending'"),

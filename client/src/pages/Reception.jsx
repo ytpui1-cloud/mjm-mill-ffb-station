@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const emptyForm = {
   ticket_no: '', delivery_date: '', supplier_name: '', vehicle_no: '', driver_name: '',
@@ -8,6 +9,10 @@ const emptyForm = {
 };
 
 export default function Reception() {
+  const { user } = useAuth();
+  const canLog = ['operator', 'assistant_station_head', 'station_head', 'manager'].includes(user.role);
+  const canManage = ['assistant_station_head', 'station_head', 'manager'].includes(user.role);
+
   const [records, setRecords] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState('');
@@ -53,14 +58,16 @@ export default function Reception() {
     <div>
       <div className="page-header">
         <h1 className="page-title">FFB Reception Station</h1>
-        <button className="btn-primary" onClick={() => setShowForm((s) => !s)}>
-          {showForm ? 'Cancel' : '+ Log Delivery'}
-        </button>
+        {canLog && (
+          <button className="btn-primary" onClick={() => setShowForm((s) => !s)}>
+            {showForm ? 'Cancel' : '+ Log Delivery'}
+          </button>
+        )}
       </div>
 
       {error && <div className="error-banner">{error}</div>}
 
-      {showForm && (
+      {showForm && canLog && (
         <form className="card form-grid" onSubmit={handleSubmit}>
           <label>Ticket No
             <input required value={form.ticket_no} onChange={handleChange('ticket_no')} placeholder="TK-0001" />
@@ -122,7 +129,7 @@ export default function Reception() {
         <table>
           <thead>
             <tr>
-              <th>Ticket</th><th>Date</th><th>Supplier</th><th>Grade</th><th>Net Wt (kg)</th><th>Amount (RM)</th><th></th>
+              <th>Ticket</th><th>Date</th><th>Supplier</th><th>Grade</th><th>Net Wt (kg)</th><th>Amount (RM)</th>{canManage && <th></th>}
             </tr>
           </thead>
           <tbody>
@@ -134,11 +141,11 @@ export default function Reception() {
                 <td>{r.grade}</td>
                 <td>{Number(r.net_weight_kg).toFixed(1)}</td>
                 <td className="strong">{Number(r.amount_payable).toFixed(2)}</td>
-                <td><button className="btn-link danger" onClick={() => handleDelete(r.id)}>Delete</button></td>
+                {canManage && <td><button className="btn-link danger" onClick={() => handleDelete(r.id)}>Delete</button></td>}
               </tr>
             ))}
             {records.length === 0 && (
-              <tr><td colSpan={7} className="empty-row">No deliveries logged yet.</td></tr>
+              <tr><td colSpan={canManage ? 7 : 6} className="empty-row">No deliveries logged yet.</td></tr>
             )}
           </tbody>
         </table>

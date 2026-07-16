@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const emptyForm = {
   employee_no: '', name: '', position: '', department: '', phone: '',
@@ -7,6 +8,9 @@ const emptyForm = {
 };
 
 export default function Employees() {
+  const { user } = useAuth();
+  const canManage = ['station_head', 'manager'].includes(user.role);
+
   const [employees, setEmployees] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState('');
@@ -41,14 +45,16 @@ export default function Employees() {
     <div>
       <div className="page-header">
         <h1 className="page-title">Employees</h1>
-        <button className="btn-primary" onClick={() => setShowForm((s) => !s)}>
-          {showForm ? 'Cancel' : '+ Add Employee'}
-        </button>
+        {canManage && (
+          <button className="btn-primary" onClick={() => setShowForm((s) => !s)}>
+            {showForm ? 'Cancel' : '+ Add Employee'}
+          </button>
+        )}
       </div>
 
       {error && <div className="error-banner">{error}</div>}
 
-      {showForm && (
+      {showForm && canManage && (
         <form className="card form-grid" onSubmit={handleSubmit}>
           <label>Employee No
             <input required value={form.employee_no} onChange={handleChange('employee_no')} placeholder="EMP-001" />
@@ -97,7 +103,7 @@ export default function Employees() {
         <table>
           <thead>
             <tr>
-              <th>No</th><th>Name</th><th>Position</th><th>Department</th><th>Salary Type</th><th>Base Rate</th><th>Status</th><th></th>
+              <th>No</th><th>Name</th><th>Position</th><th>Department</th><th>Salary Type</th><th>Base Rate</th><th>Status</th>{canManage && <th></th>}
             </tr>
           </thead>
           <tbody>
@@ -110,11 +116,11 @@ export default function Employees() {
                 <td className="capitalize">{emp.salary_type}</td>
                 <td>RM {Number(emp.base_rate).toFixed(2)}</td>
                 <td><span className={`badge badge-${emp.status}`}>{emp.status}</span></td>
-                <td><button className="btn-link" onClick={() => handleDelete(emp.id)}>Remove</button></td>
+                {canManage && <td><button className="btn-link" onClick={() => handleDelete(emp.id)}>Remove</button></td>}
               </tr>
             ))}
             {employees.length === 0 && (
-              <tr><td colSpan={8} className="empty-row">No employees yet.</td></tr>
+              <tr><td colSpan={canManage ? 8 : 7} className="empty-row">No employees yet.</td></tr>
             )}
           </tbody>
         </table>

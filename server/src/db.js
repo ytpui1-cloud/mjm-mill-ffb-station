@@ -39,6 +39,20 @@ await pool.query(`
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   );
 
+  CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    phone TEXT,
+    claimed_role TEXT NOT NULL,
+    role TEXT,
+    account_status TEXT NOT NULL DEFAULT 'pending'
+      CHECK (account_status IN ('pending', 'approved', 'rejected')),
+    employee_id INTEGER REFERENCES employees(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
+
   CREATE TABLE IF NOT EXISTS ffb_receptions (
     id SERIAL PRIMARY KEY,
     ticket_no TEXT UNIQUE NOT NULL,

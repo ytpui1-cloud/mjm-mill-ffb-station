@@ -1,20 +1,24 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
+import { requireRole } from '../middleware/auth.js';
 
 export const router = Router();
 
-router.get('/', async (req, res) => {
+const CAN_VIEW = requireRole('assistant_station_head', 'station_head', 'manager');
+const CAN_MANAGE = requireRole('station_head', 'manager');
+
+router.get('/', CAN_VIEW, async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM employees ORDER BY name');
   res.json(rows);
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', CAN_VIEW, async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM employees WHERE id = $1', [req.params.id]);
   if (!rows[0]) return res.status(404).json({ error: 'Employee not found' });
   res.json(rows[0]);
 });
 
-router.post('/', async (req, res) => {
+router.post('/', CAN_MANAGE, async (req, res) => {
   const { employee_no, name, position, department, phone, ic_no, join_date, salary_type, base_rate, status } = req.body;
   if (!employee_no || !name) {
     return res.status(400).json({ error: 'employee_no and name are required' });
@@ -33,7 +37,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', CAN_MANAGE, async (req, res) => {
   const { rows: existingRows } = await pool.query('SELECT * FROM employees WHERE id = $1', [req.params.id]);
   const existing = existingRows[0];
   if (!existing) return res.status(404).json({ error: 'Employee not found' });
@@ -48,7 +52,7 @@ router.put('/:id', async (req, res) => {
   res.json(rows[0]);
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', CAN_MANAGE, async (req, res) => {
   await pool.query('DELETE FROM employees WHERE id = $1', [req.params.id]);
   res.status(204).end();
 });

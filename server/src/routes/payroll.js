@@ -1,7 +1,11 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
+import { requireRole } from '../middleware/auth.js';
 
 export const router = Router();
+
+const CAN_VIEW_ALL = requireRole('assistant_station_head', 'station_head', 'manager');
+const CAN_MANAGE = requireRole('station_head', 'manager');
 
 const PAYROLL_SELECT = `
   SELECT p.*, e.name AS employee_name, e.employee_no, e.department
@@ -9,12 +13,21 @@ const PAYROLL_SELECT = `
   JOIN employees e ON e.id = p.employee_id
 `;
 
-router.get('/', async (req, res) => {
+router.get('/', CAN_VIEW_ALL, async (req, res) => {
   const { rows } = await pool.query(`${PAYROLL_SELECT} ORDER BY p.period_start DESC, e.name`);
   res.json(rows);
 });
 
-router.post('/', async (req, res) => {
+router.get('/mine', async (req, res) => {
+  if (!req.user.employee_id) return res.json([]);
+  const { rows } = await pool.query(
+    `${PAYROLL_SELECT} WHERE p.employee_id = $1 ORDER BY p.period_start DESC`,
+    [req.user.employee_id]
+  );
+  res.json(rows);
+});
+
+router.post('/', CAN_MANAGE, async (req, res) => {
   const {
     employee_id, period_start, period_end, days_worked, hours_worked,
     overtime_hours, deductions, notes, status
@@ -54,7 +67,7 @@ router.post('/', async (req, res) => {
   res.status(201).json(fullRows[0]);
 });
 
-router.put('/:id/status', async (req, res) => {
+router.put('/:id/status', CAN_MANAGE, async (req, res) => {
   const { status } = req.body;
   await pool.query('UPDATE payroll_records SET status = $1 WHERE id = $2', [status, req.params.id]);
   const { rows } = await pool.query(`${PAYROLL_SELECT} WHERE p.id = $1`, [req.params.id]);
@@ -62,7 +75,7 @@ router.put('/:id/status', async (req, res) => {
   res.json(rows[0]);
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', CAN_MANAGE, async (req, res) => {
   await pool.query('DELETE FROM payroll_records WHERE id = $1', [req.params.id]);
   res.status(204).end();
 });

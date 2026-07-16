@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const emptyForm = {
   employee_id: '', period_start: '', period_end: '', days_worked: '',
@@ -7,6 +8,10 @@ const emptyForm = {
 };
 
 export default function Payroll() {
+  const { user } = useAuth();
+  const canViewAll = ['assistant_station_head', 'station_head', 'manager'].includes(user.role);
+  const canManage = ['station_head', 'manager'].includes(user.role);
+
   const [records, setRecords] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [form, setForm] = useState(emptyForm);
@@ -14,8 +19,11 @@ export default function Payroll() {
   const [showForm, setShowForm] = useState(false);
 
   const load = () => {
-    api.listPayroll().then(setRecords).catch((e) => setError(e.message));
-    api.listEmployees().then(setEmployees).catch((e) => setError(e.message));
+    const fetchRecords = canViewAll ? api.listPayroll() : api.listMyPayroll();
+    fetchRecords.then(setRecords).catch((e) => setError(e.message));
+    if (canManage) {
+      api.listEmployees().then(setEmployees).catch((e) => setError(e.message));
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -57,14 +65,16 @@ export default function Payroll() {
     <div>
       <div className="page-header">
         <h1 className="page-title">Payroll</h1>
-        <button className="btn-primary" onClick={() => setShowForm((s) => !s)}>
-          {showForm ? 'Cancel' : '+ New Payroll Record'}
-        </button>
+        {canManage && (
+          <button className="btn-primary" onClick={() => setShowForm((s) => !s)}>
+            {showForm ? 'Cancel' : '+ New Payroll Record'}
+          </button>
+        )}
       </div>
 
       {error && <div className="error-banner">{error}</div>}
 
-      {showForm && (
+      {showForm && canManage && (
         <form className="card form-grid" onSubmit={handleSubmit}>
           <label>Employee
             <select required value={form.employee_id} onChange={handleChange('employee_id')}>
@@ -105,7 +115,7 @@ export default function Payroll() {
         <table>
           <thead>
             <tr>
-              <th>Employee</th><th>Period</th><th>Gross</th><th>Deductions</th><th>Net Pay</th><th>Status</th><th></th>
+              <th>Employee</th><th>Period</th><th>Gross</th><th>Deductions</th><th>Net Pay</th><th>Status</th>{canManage && <th></th>}
             </tr>
           </thead>
           <tbody>
@@ -117,16 +127,18 @@ export default function Payroll() {
                 <td>RM {Number(r.deductions).toFixed(2)}</td>
                 <td className="strong">RM {Number(r.net_pay).toFixed(2)}</td>
                 <td><span className={`badge badge-${r.status}`}>{r.status}</span></td>
-                <td>
-                  {r.status === 'pending' && (
-                    <button className="btn-link" onClick={() => markPaid(r.id)}>Mark Paid</button>
-                  )}
-                  <button className="btn-link danger" onClick={() => handleDelete(r.id)}>Delete</button>
-                </td>
+                {canManage && (
+                  <td>
+                    {r.status === 'pending' && (
+                      <button className="btn-link" onClick={() => markPaid(r.id)}>Mark Paid</button>
+                    )}
+                    <button className="btn-link danger" onClick={() => handleDelete(r.id)}>Delete</button>
+                  </td>
+                )}
               </tr>
             ))}
             {records.length === 0 && (
-              <tr><td colSpan={7} className="empty-row">No payroll records yet.</td></tr>
+              <tr><td colSpan={canManage ? 7 : 6} className="empty-row">No payroll records yet.</td></tr>
             )}
           </tbody>
         </table>

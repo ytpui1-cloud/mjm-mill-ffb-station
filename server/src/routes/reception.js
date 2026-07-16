@@ -1,7 +1,11 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
+import { requireRole } from '../middleware/auth.js';
 
 export const router = Router();
+
+const CAN_LOG = requireRole('operator', 'assistant_station_head', 'station_head', 'manager');
+const CAN_MANAGE = requireRole('assistant_station_head', 'station_head', 'manager');
 
 router.get('/', async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM ffb_receptions ORDER BY delivery_date DESC, id DESC');
@@ -14,7 +18,7 @@ router.get('/:id', async (req, res) => {
   res.json(rows[0]);
 });
 
-router.post('/', async (req, res) => {
+router.post('/', CAN_LOG, async (req, res) => {
   const {
     ticket_no, delivery_date, supplier_name, vehicle_no, driver_name,
     gross_weight_kg, tare_weight_kg, grade, unripe_percent, rate_per_kg,
@@ -46,7 +50,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', CAN_MANAGE, async (req, res) => {
   await pool.query('DELETE FROM ffb_receptions WHERE id = $1', [req.params.id]);
   res.status(204).end();
 });
