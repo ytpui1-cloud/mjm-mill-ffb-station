@@ -40,8 +40,12 @@ router.post('/', CAN_MANAGE, async (req, res) => {
     return res.status(400).json({ error: 'period_start and period_end are required' });
   }
 
+  const { rows: ruleRows } = await pool.query('SELECT * FROM salary_rules WHERE id = 1');
+  const overtimeMultiplier = Number(ruleRows[0]?.overtime_multiplier ?? 1.5);
+  const standardDeductionPercent = Number(ruleRows[0]?.standard_deduction_percent ?? 0);
+
   const baseRate = Number(employee.base_rate);
-  const overtimeRate = (baseRate / (employee.salary_type === 'monthly' ? 26 * 8 : 1)) * 1.5;
+  const overtimeRate = (baseRate / (employee.salary_type === 'monthly' ? 26 * 8 : 1)) * overtimeMultiplier;
   let grossPay = 0;
   if (employee.salary_type === 'monthly') {
     grossPay = baseRate * ((days_worked ?? 0) / 26);
@@ -52,7 +56,8 @@ router.post('/', CAN_MANAGE, async (req, res) => {
   }
   const overtimePay = employee.salary_type === 'monthly' ? overtimeRate * (overtime_hours ?? 0) : 0;
   grossPay += overtimePay;
-  const netPay = grossPay - (deductions ?? 0);
+  const standardDeduction = grossPay * (standardDeductionPercent / 100);
+  const netPay = grossPay - (deductions ?? 0) - standardDeduction;
 
   const { rows } = await pool.query(
     `INSERT INTO payroll_records

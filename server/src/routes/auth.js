@@ -82,7 +82,11 @@ router.post('/login', async (req, res) => {
 
 router.get('/me', authenticate, async (req, res) => {
   const { rows } = await pool.query(
-    'SELECT id, name, phone, role, account_status, employee_id FROM users WHERE id = $1',
+    `SELECT u.id, u.name, u.phone, u.role, u.account_status, u.employee_id, s.id AS station_id, s.name AS station_name, s.unit_label
+     FROM users u
+     LEFT JOIN employees e ON e.id = u.employee_id
+     LEFT JOIN stations s ON s.id = e.station_id
+     WHERE u.id = $1`,
     [req.user.id]
   );
   if (!rows[0]) return res.status(404).json({ error: 'User not found' });

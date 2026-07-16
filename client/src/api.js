@@ -40,7 +40,25 @@ export const api = {
   rejectUser: (id) => request(`/users/${id}/reject`, { method: 'PUT' }),
   changeUserRole: (id, role) => request(`/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }),
 
-  getSummary: () => request('/dashboard/summary'),
+  getSummary: (period) => request(`/dashboard/summary${period ? `?period=${period}` : ''}`),
+
+  listStations: () => request('/stations'),
+  createStation: (data) => request('/stations', { method: 'POST', body: JSON.stringify(data) }),
+  updateStation: (id, data) => request(`/stations/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  setPieceRate: (stationId, rate_per_unit) => request(`/stations/${stationId}/piece-rate`, { method: 'PUT', body: JSON.stringify({ rate_per_unit }) }),
+  deleteStation: (id) => request(`/stations/${id}`, { method: 'DELETE' }),
+
+  getSalaryRules: () => request('/salary-rules'),
+  updateSalaryRules: (data) => request('/salary-rules', { method: 'PUT', body: JSON.stringify(data) }),
+
+  listWorkEntries: () => request('/work-entries'),
+  listMyWorkEntries: () => request('/work-entries/mine'),
+  submitWorkEntry: (data) => request('/work-entries', { method: 'POST', body: JSON.stringify(data) }),
+  listStationQueue: () => request('/work-entries/queue/station'),
+  listFinalQueue: () => request('/work-entries/queue/final'),
+  stationApprove: (id) => request(`/work-entries/${id}/station-approve`, { method: 'PUT' }),
+  finalApprove: (id) => request(`/work-entries/${id}/final-approve`, { method: 'PUT' }),
+  rejectWorkEntry: (id, reason) => request(`/work-entries/${id}/reject`, { method: 'PUT', body: JSON.stringify({ reason }) }),
 
   listEmployees: () => request('/employees'),
   createEmployee: (data) => request('/employees', { method: 'POST', body: JSON.stringify(data) }),

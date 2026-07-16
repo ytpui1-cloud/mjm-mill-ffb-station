@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 
 const emptyForm = {
   employee_no: '', name: '', position: '', department: '', phone: '',
-  ic_no: '', join_date: '', salary_type: 'monthly', base_rate: '', status: 'active'
+  ic_no: '', join_date: '', salary_type: 'monthly', base_rate: '', status: 'active', station_id: ''
 };
 
 export default function Employees() {
@@ -12,11 +12,15 @@ export default function Employees() {
   const canManage = ['station_head', 'manager'].includes(user.role);
 
   const [employees, setEmployees] = useState([]);
+  const [stations, setStations] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
 
-  const load = () => api.listEmployees().then(setEmployees).catch((e) => setError(e.message));
+  const load = () => {
+    api.listEmployees().then(setEmployees).catch((e) => setError(e.message));
+    api.listStations().then(setStations).catch(() => {});
+  };
 
   useEffect(() => { load(); }, []);
 
@@ -26,7 +30,7 @@ export default function Employees() {
     e.preventDefault();
     setError('');
     try {
-      await api.createEmployee({ ...form, base_rate: Number(form.base_rate) || 0 });
+      await api.createEmployee({ ...form, base_rate: Number(form.base_rate) || 0, station_id: form.station_id || null });
       setForm(emptyForm);
       setShowForm(false);
       load();
@@ -68,6 +72,14 @@ export default function Employees() {
           <label>Department
             <input value={form.department} onChange={handleChange('department')} placeholder="e.g. FFB Reception" />
           </label>
+          <label>Station
+            <select value={form.station_id} onChange={handleChange('station_id')}>
+              <option value="">No station</option>
+              {stations.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </label>
           <label>Phone
             <input value={form.phone} onChange={handleChange('phone')} />
           </label>
@@ -103,7 +115,7 @@ export default function Employees() {
         <table>
           <thead>
             <tr>
-              <th>No</th><th>Name</th><th>Position</th><th>Department</th><th>Salary Type</th><th>Base Rate</th><th>Status</th>{canManage && <th></th>}
+              <th>No</th><th>Name</th><th>Position</th><th>Station</th><th>Salary Type</th><th>Base Rate</th><th>Status</th>{canManage && <th></th>}
             </tr>
           </thead>
           <tbody>
@@ -112,7 +124,7 @@ export default function Employees() {
                 <td>{emp.employee_no}</td>
                 <td>{emp.name}</td>
                 <td>{emp.position}</td>
-                <td>{emp.department}</td>
+                <td>{emp.station_name || '—'}</td>
                 <td className="capitalize">{emp.salary_type}</td>
                 <td>RM {Number(emp.base_rate).toFixed(2)}</td>
                 <td><span className={`badge badge-${emp.status}`}>{emp.status}</span></td>
