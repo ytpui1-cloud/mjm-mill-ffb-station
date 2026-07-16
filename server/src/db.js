@@ -42,9 +42,8 @@ await pool.query(`
   CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
+    phone TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    phone TEXT,
     claimed_role TEXT NOT NULL,
     role TEXT,
     account_status TEXT NOT NULL DEFAULT 'pending'
@@ -72,4 +71,18 @@ await pool.query(`
     remarks TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   );
+`);
+
+// One-time migration: users used to sign up with email; now they sign up with phone.
+await pool.query(`
+  ALTER TABLE users DROP COLUMN IF EXISTS email;
+  ALTER TABLE users ALTER COLUMN phone SET NOT NULL;
+  DO $$
+  BEGIN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_constraint WHERE conname = 'users_phone_unique'
+    ) THEN
+      ALTER TABLE users ADD CONSTRAINT users_phone_unique UNIQUE (phone);
+    END IF;
+  END $$;
 `);

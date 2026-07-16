@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { ROLES, ROLE_LABELS } from '../roles.js';
 
-const emptyForm = { name: '', email: '', password: '', phone: '', claimed_role: '' };
+const emptyForm = { name: '', phone: '', password: '', claimed_role: '' };
 
 export default function Register() {
   const [form, setForm] = useState(emptyForm);
@@ -61,14 +61,11 @@ export default function Register() {
         <label>Full Name
           <input required value={form.name} onChange={handleChange('name')} />
         </label>
-        <label>Email
-          <input type="email" required value={form.email} onChange={handleChange('email')} />
+        <label>Mobile Phone Number
+          <input type="tel" required value={form.phone} onChange={handleChange('phone')} placeholder="e.g. 013-8062770" />
         </label>
         <label>Password
           <input type="password" required minLength={8} value={form.password} onChange={handleChange('password')} />
-        </label>
-        <label>Phone
-          <input value={form.phone} onChange={handleChange('phone')} />
         </label>
         <label>Role
           <select required value={form.claimed_role} onChange={handleChange('claimed_role')}>

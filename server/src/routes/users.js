@@ -6,7 +6,7 @@ import { createLinkedEmployee } from '../linkEmployee.js';
 
 export const router = Router();
 
-const PUBLIC_FIELDS = 'id, name, email, phone, claimed_role, role, account_status, employee_id, created_at';
+const PUBLIC_FIELDS = 'id, name, phone, claimed_role, role, account_status, employee_id, created_at';
 
 router.use(authenticate, requireRole('manager'));
 

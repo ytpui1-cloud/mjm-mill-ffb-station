@@ -7,10 +7,13 @@ import { createLinkedEmployee } from '../linkEmployee.js';
 
 export const router = Router();
 
+const normalizePhone = (phone) => phone.replace(/[\s-]/g, '');
+
 router.post('/register', async (req, res) => {
-  const { name, email, password, phone, claimed_role } = req.body;
-  if (!name || !email || !password || !claimed_role) {
-    return res.status(400).json({ error: 'name, email, password and claimed_role are required' });
+  const { name, password, claimed_role } = req.body;
+  const phone = req.body.phone ? normalizePhone(req.body.phone) : '';
+  if (!name || !phone || !password || !claimed_role) {
+    return res.status(400).json({ error: 'name, phone, password and claimed_role are required' });
   }
   if (!ROLES.includes(claimed_role)) {
     return res.status(400).json({ error: 'Invalid role' });
@@ -29,38 +32,39 @@ router.post('/register', async (req, res) => {
     if (isFirstUser) {
       const employeeId = await createLinkedEmployee({ name, phone, role: 'manager' });
       const { rows } = await pool.query(
-        `INSERT INTO users (name, email, password_hash, phone, claimed_role, role, account_status, employee_id)
-         VALUES ($1, $2, $3, $4, $5, 'manager', 'approved', $6)
-         RETURNING id, name, email, phone, claimed_role, role, account_status, created_at`,
-        [name, email.toLowerCase(), passwordHash, phone ?? null, claimed_role, employeeId]
+        `INSERT INTO users (name, phone, password_hash, claimed_role, role, account_status, employee_id)
+         VALUES ($1, $2, $3, $4, 'manager', 'approved', $5)
+         RETURNING id, name, phone, claimed_role, role, account_status, created_at`,
+        [name, phone, passwordHash, claimed_role, employeeId]
       );
       return res.status(201).json({ ...rows[0], bootstrapped: true });
     }
 
     const { rows } = await pool.query(
-      `INSERT INTO users (name, email, password_hash, phone, claimed_role)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, name, email, phone, claimed_role, role, account_status, created_at`,
-      [name, email.toLowerCase(), passwordHash, phone ?? null, claimed_role]
+      `INSERT INTO users (name, phone, password_hash, claimed_role)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, name, phone, claimed_role, role, account_status, created_at`,
+      [name, phone, passwordHash, claimed_role]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
     if (err.code === '23505') {
-      return res.status(409).json({ error: 'An account with this email already exists' });
+      return res.status(409).json({ error: 'An account with this phone number already exists' });
     }
     res.status(400).json({ error: err.message });
   }
 });
 
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: 'email and password are required' });
+  const { password } = req.body;
+  const phone = req.body.phone ? normalizePhone(req.body.phone) : '';
+  if (!phone || !password) {
+    return res.status(400).json({ error: 'phone and password are required' });
   }
-  const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase()]);
+  const { rows } = await pool.query('SELECT * FROM users WHERE phone = $1', [phone]);
   const user = rows[0];
   if (!user || !(await bcrypt.compare(password, user.password_hash))) {
-    return res.status(401).json({ error: 'Invalid email or password' });
+    return res.status(401).json({ error: 'Invalid phone number or password' });
   }
   if (user.account_status === 'pending') {
     return res.status(403).json({ error: 'Your account is still awaiting approval' });
@@ -72,13 +76,13 @@ router.post('/login', async (req, res) => {
   const token = signToken(user);
   res.json({
     token,
-    user: { id: user.id, name: user.name, email: user.email, role: user.role, employee_id: user.employee_id }
+    user: { id: user.id, name: user.name, phone: user.phone, role: user.role, employee_id: user.employee_id }
   });
 });
 
 router.get('/me', authenticate, async (req, res) => {
   const { rows } = await pool.query(
-    'SELECT id, name, email, phone, role, account_status, employee_id FROM users WHERE id = $1',
+    'SELECT id, name, phone, role, account_status, employee_id FROM users WHERE id = $1',
     [req.user.id]
   );
   if (!rows[0]) return res.status(404).json({ error: 'User not found' });

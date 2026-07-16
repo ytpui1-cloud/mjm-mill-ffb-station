@@ -49,13 +49,13 @@ export default function TeamRoles() {
       <div className="table-wrap card">
         <table>
           <thead>
-            <tr><th>Name</th><th>Email</th><th>Claimed Role</th><th>Assign Role</th><th></th></tr>
+            <tr><th>Name</th><th>Phone</th><th>Claimed Role</th><th>Assign Role</th><th></th></tr>
           </thead>
           <tbody>
             {pending.map((u) => (
               <tr key={u.id}>
                 <td>{u.name}</td>
-                <td>{u.email}</td>
+                <td>{u.phone}</td>
                 <td>{ROLE_LABELS[u.claimed_role]}</td>
                 <td>
                   <select
@@ -84,13 +84,13 @@ export default function TeamRoles() {
       <div className="table-wrap card">
         <table>
           <thead>
-            <tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr>
+            <tr><th>Name</th><th>Phone</th><th>Role</th><th></th></tr>
           </thead>
           <tbody>
             {approved.map((u) => (
               <tr key={u.id}>
                 <td>{u.name}</td>
-                <td>{u.email}</td>
+                <td>{u.phone}</td>
                 <td>
                   <select value={u.role} onChange={(e) => handleRoleChange(u, e.target.value)}>
                     {ROLES.map((r) => (
@@ -113,12 +113,12 @@ export default function TeamRoles() {
           <h2 className="section-title">Rejected ({rejected.length})</h2>
           <div className="table-wrap card">
             <table>
-              <thead><tr><th>Name</th><th>Email</th><th>Claimed Role</th></tr></thead>
+              <thead><tr><th>Name</th><th>Phone</th><th>Claimed Role</th></tr></thead>
               <tbody>
                 {rejected.map((u) => (
                   <tr key={u.id}>
                     <td>{u.name}</td>
-                    <td>{u.email}</td>
+                    <td>{u.phone}</td>
                     <td>{ROLE_LABELS[u.claimed_role]}</td>
                   </tr>
                 ))}

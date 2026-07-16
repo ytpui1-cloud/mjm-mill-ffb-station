@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -15,7 +15,7 @@ export default function Login() {
     setError('');
     setSubmitting(true);
     try {
-      await login(email, password);
+      await login(phone, password);
       navigate('/');
     } catch (err) {
       setError(err.message);
@@ -29,8 +29,8 @@ export default function Login() {
       <form className="card auth-card" onSubmit={handleSubmit}>
         <h1 className="page-title">Log In</h1>
         {error && <div className="error-banner">{error}</div>}
-        <label>Email
-          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        <label>Mobile Phone Number
+          <input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="e.g. 013-8062770" />
         </label>
         <label>Password
           <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
